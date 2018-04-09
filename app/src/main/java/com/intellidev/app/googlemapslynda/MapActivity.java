@@ -18,19 +18,25 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.gcm.Task;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.places.GeoDataClient;
+import com.google.android.gms.location.places.Places;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 
@@ -38,7 +44,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MapActivity extends AppCompatActivity implements OnMapReadyCallback {
+public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener {
 
     boolean mLocationPermissionGranted = false;
     final int LOCATION_PERMISION_REQUIST_CODE = 103;
@@ -46,10 +52,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     GoogleMap mMap;
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private float DEFAULT_ZOOM = 15f;
+    private PlaceAutoCompleteAdapter autoCompleteAdapter;
+    private static final LatLngBounds LAT_LNG_BOUNDS = new LatLngBounds(new LatLng(-40, -168), new LatLng(71, 136));
 
     // Widgets
-    EditText etSearch;
+    // TODO 13 this was edittext but changed to make autocomplete
+    AutoCompleteTextView etSearch;
+
     ImageView icGps;
+    private GoogleApiClient mGoogleApiClient;
+    private GeoDataClient mGeoDataClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +76,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     // TODO 8
     private void setupSearchBox ()
     {
+        // Todo 14 to activate autocomplete
+        mGeoDataClient = Places.getGeoDataClient(this, null);
+        autoCompleteAdapter = new PlaceAutoCompleteAdapter(this,mGeoDataClient, LAT_LNG_BOUNDS,null);
+        etSearch.setAdapter(autoCompleteAdapter);
+
+
+
         etSearch.setOnEditorActionListener(new EditText.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int actionId, KeyEvent keyEvent) {
@@ -240,4 +259,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
     }
 
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+    }
 }
