@@ -2,7 +2,10 @@ package com.intellidev.app.googlemapslynda;
 
 import android.*;
 import android.Manifest;
+import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -10,6 +13,14 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.gcm.Task;
@@ -20,7 +31,12 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MapActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -31,11 +47,75 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private FusedLocationProviderClient mFusedLocationProviderClient;
     private float DEFAULT_ZOOM = 15f;
 
+    // Widgets
+    EditText etSearch;
+    ImageView icGps;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map2);
+        etSearch = findViewById(R.id.et_search);
+        icGps = findViewById(R.id.ic_gps);
         getLocationPermisions();
+
+    }
+
+    // TODO 8
+    private void setupSearchBox ()
+    {
+        etSearch.setOnEditorActionListener(new EditText.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView textView, int actionId, KeyEvent keyEvent) {
+
+                if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                        actionId == EditorInfo.IME_ACTION_DONE ||
+                        actionId == EditorInfo.IME_ACTION_NEXT ||
+                        keyEvent.getAction() == KeyEvent.ACTION_DOWN ||
+                        keyEvent.getAction() == KeyEvent.KEYCODE_ENTER)
+                {
+                    geoLocate();
+                    return true;
+                }
+
+
+                return false;
+            }
+        });
+
+        // TODO 12 gps icon to get device location again
+        icGps.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                getDeviceLocation();
+            }
+        });
+
+    }
+
+    // TODO 9 you must enable "Google Maps Geocoding API" to make that work
+    private void geoLocate() {
+        Log.d(TAG, "geoLocate: ");
+        String searchQuery = etSearch.getText().toString();
+        Geocoder geocoder = new Geocoder(MapActivity.this);
+        List<Address> list = new ArrayList<>();
+
+        try {
+            list = geocoder.getFromLocationName(searchQuery, 1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        if (list.size()>0)
+        {
+            Address address = list.get(0);
+            Log.d(TAG, "geoLocate: " + address.toString());
+
+            // TODO 10 Move camera to the location (lat & lang)
+            moveCamera(new LatLng(address.getLatitude(),address.getLongitude()),DEFAULT_ZOOM, address.getAddressLine(0));
+
+        }
+
     }
 
     // TODO 4
@@ -86,6 +166,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         Toast.makeText(this, "map ready", Toast.LENGTH_SHORT).show();
         mMap = googleMap;
         getDeviceLocation();
+        setupSearchBox();
 
         // TODO 6 if you want to mark current location with blue marker
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -102,6 +183,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         // TODO 7 to hide the button that make the map at the center of current location if you need a search interface
         mMap.getUiSettings().setMyLocationButtonEnabled(false);
+
+
     }
 
     // TODO 5 get device location
@@ -118,7 +201,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         if (task.isSuccessful()) {
                             Log.d(TAG, "onComplete: location found");
                             Location currentLocation = (Location) task.getResult();
-                            moveCamera(new LatLng(currentLocation.getLatitude(),currentLocation.getLongitude()), DEFAULT_ZOOM);
+                            moveCamera(new LatLng(currentLocation.getLatitude(),currentLocation.getLongitude()), DEFAULT_ZOOM, "My Location");
                         }
                         else {
                             Log.d(TAG, "onComplete: current location is null");
@@ -133,9 +216,28 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     }
 
-    private void moveCamera (LatLng latLng, float zoom)
+    private void moveCamera (LatLng latLng, float zoom, String title)
     {
         Log.d(TAG, "moveCamera: to lat : " + latLng.latitude + ", long : " + latLng.longitude);
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng,zoom));
+
+        // TODO 11 to show address hint above marker
+        MarkerOptions markerOptions = new MarkerOptions()
+                .position(latLng)
+                .title(title);
+        mMap.addMarker(markerOptions);
+
+        // TODO 12 to hide keyboard when moving camera
+        hideKeyboard();
     }
+
+
+    public void hideKeyboard() {
+        View view = findViewById(android.R.id.content);
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
+    }
+
 }
