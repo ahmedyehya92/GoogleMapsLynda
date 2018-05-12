@@ -4,9 +4,12 @@ import android.*;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Point;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -30,6 +33,8 @@ import com.google.android.gms.gcm.Task;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.GeoDataClient;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.PlaceBufferResponse;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -44,8 +49,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener {
+public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener, PlaceAutoCompleteAdapter.OnAutoLocationItemClickListner {
 
+    Place place;
+    TextView tvAddress;
     boolean mLocationPermissionGranted = false;
     final int LOCATION_PERMISION_REQUIST_CODE = 103;
     final String TAG = MapActivity.class.getSimpleName();
@@ -62,12 +69,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     ImageView icGps;
     private GoogleApiClient mGoogleApiClient;
     private GeoDataClient mGeoDataClient;
+    Handler mHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map2);
+        mHandler = new Handler(Looper.getMainLooper());
         etSearch = findViewById(R.id.et_search);
+        tvAddress = findViewById(R.id.tv_address);
         icGps = findViewById(R.id.ic_gps);
         getLocationPermisions();
 
@@ -79,6 +89,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         // Todo 14 to activate autocomplete
         mGeoDataClient = Places.getGeoDataClient(this, null);
         autoCompleteAdapter = new PlaceAutoCompleteAdapter(this,mGeoDataClient, LAT_LNG_BOUNDS,null);
+        autoCompleteAdapter.setOnAutoLocationItemClickListner(this);
         etSearch.setAdapter(autoCompleteAdapter);
 
 
@@ -203,8 +214,101 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         // TODO 7 to hide the button that make the map at the center of current location if you need a search interface
         mMap.getUiSettings().setMyLocationButtonEnabled(false);
 
+        Point x_y_points = new Point(((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getView().getWidth()/2, ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getView().getHeight()/2);
+        LatLng latLng =
+                mMap.getProjection().fromScreenLocation(x_y_points);
+        Log.d(TAG, "centerLocation lat: "+ latLng.latitude);
 
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                Point x_y_points = new Point(((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getView().getWidth()/2, ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getView().getHeight()/2);
+                LatLng latLg =
+                        mMap.getProjection().fromScreenLocation(x_y_points);
+                Log.d(TAG, "centerLocation lat: "+ latLg.latitude);
+            }
+        });
+
+        mMap.setOnCameraMoveCanceledListener(new GoogleMap.OnCameraMoveCanceledListener() {
+            @Override
+            public void onCameraMoveCanceled() {
+                /*
+                Point x_y_points = new Point(((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getView().getWidth()/2, ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getView().getHeight()/2);
+                final LatLng latLg =
+                        mMap.getProjection().fromScreenLocation(x_y_points);
+                Log.d(TAG, "centerLocation lat: "+ latLg.latitude);
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        List<Address> addresses;
+                        Geocoder geocoder = new Geocoder(MapActivity.this);
+                        try {
+                            addresses = geocoder.getFromLocation(latLg.latitude, latLg.longitude, 1); // Here 1 represent max location result to returned, by documents it recommended 1 to 5
+                            String address = addresses.get(0).getAddressLine(0); // If any additional address line present than only, check with max available address lines by getMaxAddressLineIndex()
+                            etSearch.setText(address);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                */
+            }
+        });
+
+        mMap.setOnCameraIdleListener(new GoogleMap.OnCameraIdleListener() {
+            @Override
+            public void onCameraIdle() {
+                Point x_y_points = new Point(((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getView().getWidth()/2, ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getView().getHeight()/2);
+                final LatLng latLg =
+                        mMap.getProjection().fromScreenLocation(x_y_points);
+                Log.d(TAG, "centerLocation lat: "+ latLg.latitude);
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        List<Address> addresses;
+                        Geocoder geocoder = new Geocoder(MapActivity.this);
+                        try {
+                            addresses = geocoder.getFromLocation(latLg.latitude, latLg.longitude, 1); // Here 1 represent max location result to returned, by documents it recommended 1 to 5
+                            String address = addresses.get(0).getAddressLine(0); // If any additional address line present than only, check with max available address lines by getMaxAddressLineIndex()
+                            tvAddress.setText(address);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
+        });
+
+        mMap.setOnCameraMoveListener(new GoogleMap.OnCameraMoveListener() {
+            @Override
+            public void onCameraMove() {
+                /*
+                Point x_y_points = new Point(((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getView().getWidth()/2, ((SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map)).getView().getHeight()/2);
+                final LatLng latLg =
+                        mMap.getProjection().fromScreenLocation(x_y_points);
+                Log.d(TAG, "centerLocation lat: "+ latLg.latitude);
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        List<Address> addresses;
+                        Geocoder geocoder = new Geocoder(MapActivity.this);
+                        try {
+                            addresses = geocoder.getFromLocation(latLg.latitude, latLg.longitude, 1); // Here 1 represent max location result to returned, by documents it recommended 1 to 5
+                            String address = addresses.get(0).getAddressLine(0); // If any additional address line present than only, check with max available address lines by getMaxAddressLineIndex()
+                            etSearch.setText(address);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+/*
+
+                */
+
+            }
+        });
     }
+
 
     // TODO 5 get device location
     private void getDeviceLocation() {
@@ -235,6 +339,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     }
 
+
     private void moveCamera (LatLng latLng, float zoom, String title)
     {
         Log.d(TAG, "moveCamera: to lat : " + latLng.latitude + ", long : " + latLng.longitude);
@@ -262,5 +367,31 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
+    }
+
+    @Override
+    public void onAutoLocationItemClicked(String plceId) {
+        getPlace(plceId);
+        //Log.d(TAG, "onAutoLocationItemClicked: "+place.getName());
+    }
+
+    private void getPlace (String placeId) {
+        mGeoDataClient.getPlaceById(placeId).addOnCompleteListener(new OnCompleteListener<PlaceBufferResponse>() {
+            @Override
+            public void onComplete(@NonNull com.google.android.gms.tasks.Task<PlaceBufferResponse> task) {
+                if (task.isSuccessful()) {
+                    PlaceBufferResponse places = task.getResult();
+                    place = places.get(0);
+                    Log.i(TAG, "Place found: " + place.getLatLng().toString());
+                    moveCamera(place.getLatLng(),DEFAULT_ZOOM,"My Location");
+                    Log.d(TAG, "onAutoLocationItemClicked: "+place.getName());
+                    etSearch.setText(place.getAddress());
+                    etSearch.dismissDropDown();
+                    places.release();
+                } else {
+                    Log.e(TAG, "Place not found.");
+                }
+            }
+        });
     }
 }

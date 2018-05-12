@@ -18,14 +18,18 @@ package com.intellidev.app.googlemapslynda;
 
         import android.content.Context;
         import android.graphics.Typeface;
+        import android.support.annotation.NonNull;
+        import android.support.constraint.ConstraintLayout;
         import android.text.style.CharacterStyle;
         import android.text.style.StyleSpan;
         import android.util.Log;
+        import android.view.LayoutInflater;
         import android.view.View;
         import android.view.ViewGroup;
         import android.widget.ArrayAdapter;
         import android.widget.Filter;
         import android.widget.Filterable;
+        import android.widget.LinearLayout;
         import android.widget.TextView;
         import android.widget.Toast;
         import com.google.android.gms.common.data.DataBufferUtils;
@@ -33,7 +37,10 @@ package com.intellidev.app.googlemapslynda;
         import com.google.android.gms.location.places.AutocompletePrediction;
         import com.google.android.gms.location.places.AutocompletePredictionBufferResponse;
         import com.google.android.gms.location.places.GeoDataClient;
+        import com.google.android.gms.location.places.Place;
+        import com.google.android.gms.location.places.PlaceBufferResponse;
         import com.google.android.gms.maps.model.LatLngBounds;
+        import com.google.android.gms.tasks.OnCompleteListener;
         import com.google.android.gms.tasks.RuntimeExecutionException;
         import com.google.android.gms.tasks.Task;
         import com.google.android.gms.tasks.Tasks;
@@ -52,10 +59,13 @@ public class PlaceAutoCompleteAdapter
 
     private static final String TAG = "PlaceAutocomplete";
     private static final CharacterStyle STYLE_BOLD = new StyleSpan(Typeface.BOLD);
+    ViewHolder viewHolder;
+    Place place;
     /**
      * Current results returned by this adapter.
      */
     private ArrayList<AutocompletePrediction> mResultList;
+    private OnAutoLocationItemClickListner onAutoLocationItemClickListner;
 
     /**
      * Handles autocomplete requests.
@@ -83,6 +93,7 @@ public class PlaceAutoCompleteAdapter
         mGeoDataClient = geoDataClient;
         mBounds = bounds;
         mPlaceFilter = filter;
+
     }
 
     /**
@@ -110,21 +121,69 @@ public class PlaceAutoCompleteAdapter
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        View row = super.getView(position, convertView, parent);
+         //View row = super.getView(position, convertView, parent);
 
         // Sets the primary and secondary text for a row.
         // Note that getPrimaryText() and getSecondaryText() return a CharSequence that may contain
         // styling based on the given CharacterStyle.
 
-        AutocompletePrediction item = getItem(position);
+        final AutocompletePrediction item = getItem(position);
 
+
+        if (convertView == null)
+        {
+            convertView = LayoutInflater.from(getContext()).inflate(R.layout.view_autocomplete_row,parent,false);
+            viewHolder = new ViewHolder();
+            viewHolder.tvMainTitle = convertView.findViewById(R.id.textView);
+            viewHolder.tvSubTitle = convertView.findViewById(R.id.textView2);
+            viewHolder.loutItemContainer = convertView.findViewById(R.id.lout_container);
+            convertView.setTag(viewHolder);
+        }
+
+        else
+        {
+            viewHolder = (ViewHolder) convertView.getTag();
+            viewHolder.tvMainTitle.setText(item.getPrimaryText(STYLE_BOLD));
+            viewHolder.tvSubTitle.setText(item.getSecondaryText(STYLE_BOLD));
+            viewHolder.loutItemContainer.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    onAutoLocationItemClickListner.onAutoLocationItemClicked(item.getPlaceId());
+                }
+            });
+        }
+
+
+/*
         TextView textView1 = (TextView) row.findViewById(android.R.id.text1);
         TextView textView2 = (TextView) row.findViewById(android.R.id.text2);
+
         textView1.setText(item.getPrimaryText(STYLE_BOLD));
         textView2.setText(item.getSecondaryText(STYLE_BOLD));
+        */
 
-        return row;
+        return convertView;
     }
+
+
+    public class ViewHolder {
+        TextView tvMainTitle;
+        TextView tvSubTitle;
+        ConstraintLayout loutItemContainer;
+    }
+
+
+    public interface OnAutoLocationItemClickListner {
+
+        public void onAutoLocationItemClicked(String placeId);
+    }
+
+    public void setOnAutoLocationItemClickListner(OnAutoLocationItemClickListner onAutoLocationItemClickListner)
+    {
+        this.onAutoLocationItemClickListner = onAutoLocationItemClickListner;
+    }
+
+
 
     /**
      * Returns the filter for the current set of autocomplete results.
@@ -162,6 +221,7 @@ public class PlaceAutoCompleteAdapter
                 if (results != null && results.count > 0) {
                     // The API returned at least one result, update the data.
                     mResultList = (ArrayList<AutocompletePrediction>) results.values;
+
                     notifyDataSetChanged();
                 } else {
                     // The API did not return any results, invalidate the data set.
