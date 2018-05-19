@@ -346,10 +346,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng,zoom));
 
         // TODO 11 to show address hint above marker
-        MarkerOptions markerOptions = new MarkerOptions()
+        /*MarkerOptions markerOptions = new MarkerOptions()
                 .position(latLng)
                 .title(title);
-        mMap.addMarker(markerOptions);
+        mMap.addMarker(markerOptions); */
 
         // TODO 12 to hide keyboard when moving camera
         hideKeyboard();
@@ -385,7 +385,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     Log.i(TAG, "Place found: " + place.getLatLng().toString());
                     moveCamera(place.getLatLng(),DEFAULT_ZOOM,"My Location");
                     Log.d(TAG, "onAutoLocationItemClicked: "+place.getName());
-                    etSearch.setText(place.getAddress());
+                    tvAddress.setText(place.getAddress());
                     etSearch.dismissDropDown();
                     places.release();
                 } else {

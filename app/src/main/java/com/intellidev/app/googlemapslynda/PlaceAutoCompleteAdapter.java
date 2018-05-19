@@ -141,17 +141,17 @@ public class PlaceAutoCompleteAdapter
         }
 
         else
-        {
             viewHolder = (ViewHolder) convertView.getTag();
-            viewHolder.tvMainTitle.setText(item.getPrimaryText(STYLE_BOLD));
-            viewHolder.tvSubTitle.setText(item.getSecondaryText(STYLE_BOLD));
-            viewHolder.loutItemContainer.setOnClickListener(new View.OnClickListener() {
+
+        viewHolder.tvMainTitle.setText(item.getPrimaryText(STYLE_BOLD));
+        viewHolder.tvSubTitle.setText(item.getSecondaryText(STYLE_BOLD));
+        viewHolder.loutItemContainer.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     onAutoLocationItemClickListner.onAutoLocationItemClicked(item.getPlaceId());
                 }
             });
-        }
+
 
 
 /*

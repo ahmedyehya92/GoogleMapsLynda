@@ -57,7 +57,7 @@
         android:layout_below="@id/relayout1"
         android:layout_alignParentRight="true"
         android:layout_margin="15dp"
-        android:src="@drawable/ic_action_name"
+        android:src="@drawable/ic_action_my_location"
         />
 
     <ImageView
@@ -74,7 +74,9 @@
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:background="@color/white"
-        android:textSize="32sp"
+        android:textColor="@color/black"
+        android:gravity="center"
+        android:textSize="24sp"
 
         />
 
